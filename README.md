@@ -17,19 +17,23 @@ Everything runs in your browser. There is no server and no account.
 - **Fix one chord:** turn on "Edit chords" and click a card to change just that chord, instead of every occurrence.
 - **Change warning:** a bar under the big chord counts down to the next chord, in real seconds at the current speed.
 - **Keyboard shortcuts:** keep your hands on the guitar (see below).
-- **Saved songs:** links, offsets, replacements, loops and your known chords are remembered in the browser.
-- **Backup and restore:** export everything to one JSON file and import it back.
+- **Saved songs:** links, offsets, replacements, loops, tabs, mp3s and your known chords are kept in a SQLite file on your computer, so clearing browser data loses nothing and every browser sees the same songs.
 
 ## Run it
 
-Needs Node 20 or newer.
+Needs Node 22.13 or newer (it uses Node's built-in `node:sqlite`).
 
 ```sh
 npm install
-npm run dev
+npm run dev      # development, http://localhost:5173/
+npm start        # build, then serve the built app, http://localhost:4173/
 ```
 
-Open **http://localhost:5173/**. Use `localhost`, not `127.0.0.1`: YouTube refuses to play embedded videos on a raw IP address (player error 153).
+Use `localhost`, not `127.0.0.1`: YouTube refuses to play embedded videos on a raw IP address (player error 153).
+
+Your data is stored in `data/fretboardbuddy.db` (set `FBB_DB` to use another path, `PORT` to change the `npm start` port). To back up, copy that file. It is not part of git. The server only answers requests from `localhost`.
+
+If you used an earlier version that stored data in the browser, it is copied into the database automatically the first time you start the new version.
 
 Other commands: `npm test`, `npm run build`, `npm run lint`.
 
@@ -62,7 +66,7 @@ Click outside the video first. While the YouTube video has focus, YouTube gets t
 - Time maps as `media time = offset + stretch × tab time`. The offset comes from the first tap and the stretch from the second.
 - YouTube is controlled through the YouTube IFrame Player API. An mp3 uses a plain `<audio>` element. Both sit behind one small `Source` interface in `src/player/`.
 - Chord shapes come from [`@tombatossals/chords-db`](https://github.com/tombatossals/chords-db).
-- Settings are stored in `localStorage`. The tab file and any mp3 are stored in IndexedDB.
+- A small local server (`server/api.mjs`, built on `node:sqlite`) stores songs, settings, tabs and mp3s in one SQLite file. In development it runs inside the Vite dev server.
 
 ## Project layout
 
@@ -76,8 +80,10 @@ Click outside the video first. While the YouTube video has focus, YouTube gets t
 | `src/ChordLane.tsx`, `src/TabView.tsx`, `src/ChordDiagram.tsx`, `src/ChordPanel.tsx` | UI |
 | `src/capo.ts` | Capo shapes and the best capo for your known chords |
 | `src/loop.ts` | A-B loop snapping and wrap rule |
-| `src/backup.ts` | Export and import of saved data |
-| `src/store.ts` | Saved songs and settings |
+| `src/store.ts` | Saved songs and settings, kept in sync with the server |
+| `src/migrate.ts` | One-time copy of old browser data into the database |
+| `server/api.mjs` | SQLite API (songs, known chords, shapes, files) |
+| `server/start.mjs` | Serves the built app and the API for `npm start` |
 
 ## Limits
 
@@ -85,7 +91,7 @@ Click outside the video first. While the YouTube video has focus, YouTube gets t
 - Drift correction handles steady tempo differences only, not a recording that speeds up and slows down.
 - Only major and minor chords are detected and offered.
 - With a capo, the chord lane shows the shapes you finger, but the tab view always shows the file's real frets. Changing the capo clears your chord replacements and edits.
-- Backups include tab files but not mp3s: pick the mp3 again after restoring.
+- The app needs its local server running; without it you get a message asking you to start it.
 - The tab view shows the file's real frets. If the file is tuned down, tune your guitar down to match the tab, or ignore the tab numbers and use the chord shapes.
 
 ## Guitar Pro files

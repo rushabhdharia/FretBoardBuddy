@@ -30,3 +30,6 @@ dist-ssr
 
 # Claude Code local config
 .claude/
+
+# SQLite data (songs, tabs, mp3s)
+data/

@@ -31,6 +31,9 @@ export function ChordLane({ events, source, offsetSec, stretch, speed, capo, loo
   const laneRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const [cur, setCur] = useState(-1)
+  const countRef = useRef<HTMLDivElement>(null)
+  const fillRef = useRef<HTMLDivElement>(null)
+  const textRef = useRef<HTMLSpanElement>(null)
   const [editIdx, setEditIdx] = useState<number | null>(null)
   // latest props for the rAF loop and click handler, without restarting the loop
   const live = useRef({ events, source, offsetSec, stretch, speed })
@@ -48,7 +51,23 @@ export function ChordLane({ events, source, offsetSec, stretch, speed, capo, loo
           const x = (laneRef.current?.clientWidth ?? 0) * PLAYHEAD - tabSec * PX_PER_SEC
           trackRef.current.style.transform = `translateX(${x}px)`
         }
-        setCur(indexAt(events, tabSec * 1000))
+        const idx = indexAt(events, tabSec * 1000)
+        setCur(idx)
+        // countdown to the next chord, in real seconds at the current speed (no per-frame React state)
+        const next = events[idx + 1]
+        if (countRef.current && fillRef.current && textRef.current) {
+          if (idx >= 0 && next) {
+            const start = events[idx].tabMs / 1000, end = next.tabMs / 1000
+            const left = ((end - tabSec) * stretch) / speed
+            fillRef.current.style.width = `${Math.min(100, Math.max(0, ((tabSec - start) / (end - start)) * 100))}%`
+            textRef.current.textContent = `next in ${Math.max(0, left).toFixed(1)}s`
+            countRef.current.classList.toggle('soon', left < 1)
+          } else {
+            fillRef.current.style.width = '0'
+            textRef.current.textContent = ''
+            countRef.current.classList.remove('soon')
+          }
+        }
       }
       raf = requestAnimationFrame(tick)
     }
@@ -77,6 +96,7 @@ export function ChordLane({ events, source, offsetSec, stretch, speed, capo, loo
         {events[cur + 1] && <ChordDiagram chord={events[cur + 1].chord} index={voicing[events[cur + 1].chord] ?? 0} small
           onIndex={i => onVoicing(events[cur + 1].chord, i)} />}
       </div>
+      <div className="countdown" ref={countRef}><div className="fill" ref={fillRef} /><span ref={textRef} /></div>
       <div className="lane" ref={laneRef} onClick={seekFromClick}>
         <div className="playhead" style={{ left: `${PLAYHEAD * 100}%` }} />
         <div className="track" ref={trackRef}>

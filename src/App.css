@@ -32,3 +32,7 @@ select { background: #2b3040; color: inherit; border: 1px solid #444b60; border-
 .loopband.loopA { width: 0; border-right: 0; }
 .card.editable { cursor: pointer; outline: 1px dashed #8a8f9c; }
 .card select { width: 100%; }
+.countdown { position: relative; height: 18px; background: #1d2028; border-radius: 4px; margin: 6px 0; overflow: hidden; }
+.countdown .fill { height: 100%; width: 0; background: #3b6fd8; }
+.countdown.soon .fill { background: #ff9f43; }
+.countdown span { position: absolute; left: 8px; top: 0; font-size: 12px; line-height: 18px; }

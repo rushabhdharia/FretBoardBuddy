@@ -199,6 +199,38 @@ export default function App() {
     setSyncMsg(`Tempo adjusted: recording is ${((next.stretch - 1) * 100).toFixed(1)}% ${next.stretch > 1 ? 'slower' : 'faster'} than the tab.`)
   }
 
+  // keyboard shortcuts. The listener is attached once and always calls the latest handler.
+  const onKey = useRef<(e: KeyboardEvent) => void>(() => {})
+  const handleKey = (e: KeyboardEvent) => {
+    const tag = (e.target as HTMLElement).tagName
+    if (e.ctrlKey || e.metaKey || e.altKey || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
+    const step = (d: number) => setSpeed(SPEEDS[Math.min(SPEEDS.length - 1, Math.max(0, SPEEDS.indexOf(speed) + d))])
+    const seekBy = (d: number) => source?.seek(Math.max(0, source.currentTime() + d))
+    const actions: Record<string, () => void> = {
+      ' ': () => source && (source.playing() ? source.pause() : source.play()), // also stops a focused button from firing
+      ArrowLeft: () => seekBy(-5),
+      ArrowRight: () => seekBy(5),
+      ',': () => setOffset(o => o - 0.01),
+      '.': () => setOffset(o => o + 0.01),
+      '-': () => step(-1),
+      '=': () => step(1),
+      '[': setLoopA,
+      ']': setLoopB,
+      '\\': clearLoop,
+      e: () => setEditing(v => !v),
+    }
+    const act = actions[e.key]
+    if (!act) return
+    e.preventDefault()
+    act()
+  }
+  useEffect(() => { onKey.current = handleKey })
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => onKey.current(e)
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [])
+
   return (
     <main>
       <h1>FretBoardBuddy</h1>
@@ -250,6 +282,7 @@ export default function App() {
         ))}
       </section>
       {syncMsg && <p className="hint">{syncMsg}</p>}
+      <p className="hint">Keys: Space play/pause · ← → seek 5s · , . nudge 10ms · - = speed · [ ] set loop A/B · \ clear loop · e edit chords. Click outside the video first: while the video has focus, YouTube gets the keys.</p>
       <p className="hint">Sync: pause right when the first chord sounds and press "Chords start here". If chords drift later, press "This chord just started" exactly when a chord change sounds, 10+ seconds in (the later, the more accurate).</p>
 
       {score && (

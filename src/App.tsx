@@ -6,6 +6,7 @@ import { TabView } from './TabView'
 import { createAudioSource } from './player/AudioSource'
 import type { Source } from './player/source'
 import { createYouTubeSource, parseVideoId } from './player/YouTubeSource'
+import { makeBackup, parseBackup, restoreBackup } from './backup'
 import { bestCapos, capoShift } from './capo'
 import { createClock } from './clock'
 import { makeLoop, shouldWrap, snapA, snapB, type Loop } from './loop'
@@ -34,6 +35,7 @@ export default function App() {
   const [pendingA, setPendingA] = useState<number | null>(null)
   const [overrides, setOverrides] = useState<Record<string, string>>({})
   const [editing, setEditing] = useState(false)
+  const [backupMsg, setBackupMsg] = useState('')
   const [syncMsg, setSyncMsg] = useState('')
   const [subst, setSubst] = useState<Record<string, string>>({})
   const [known, setKnown] = useState<string[]>(loadKnown)
@@ -199,6 +201,23 @@ export default function App() {
     setSyncMsg(`Tempo adjusted: recording is ${((next.stretch - 1) * 100).toFixed(1)}% ${next.stretch > 1 ? 'slower' : 'faster'} than the tab.`)
   }
 
+  const exportBackup = async () => {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(await makeBackup())], { type: 'application/json' }))
+    const a = Object.assign(document.createElement('a'), { href: url, download: 'fretboardbuddy-backup.json' })
+    a.click()
+    URL.revokeObjectURL(url)
+    setBackupMsg('Backup saved. mp3 files are not included: pick them again after restoring.')
+  }
+  const importBackup = async (file: File) => {
+    try {
+      const n = await restoreBackup(parseBackup(await file.text()))
+      setSaved(loadSongs())
+      setKnown(loadKnown())
+      setVoicing(loadVoicing())
+      setBackupMsg(`Restored ${n} song${n === 1 ? '' : 's'}. Open them from "Saved songs".`)
+    } catch (e) { setBackupMsg((e as Error).message) }
+  }
+
   // keyboard shortcuts. The listener is attached once and always calls the latest handler.
   const onKey = useRef<(e: KeyboardEvent) => void>(() => {})
   const handleKey = (e: KeyboardEvent) => {
@@ -295,6 +314,11 @@ export default function App() {
       <ChordPanel events={shapeEvents} capoOptions={known.length ? bestCapos(events, known) : []} capo={capo} onCapo={changeCapo} known={known} subst={subst} onKnown={setKnown} onSubst={setSubst}
         onAuto={() => setSubst(autoSubst(shapeEvents, known))}
         editCount={Object.keys(overrides).length} onClearEdits={() => setOverrides({})} />
+      <section className="row">
+        <button onClick={() => void exportBackup()}>Export backup</button>
+        <label>Import backup <input type="file" accept=".json,application/json" onChange={e => e.target.files?.[0] && void importBackup(e.target.files[0])} /></label>
+        <span className="hint">{backupMsg}</span>
+      </section>
     </main>
   )
 }

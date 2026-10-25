@@ -25,6 +25,7 @@ export const songKey = (s: SongSource) => (s.type === 'youtube' ? `yt:${s.id}` :
 // settings are small -> localStorage; GP/mp3 files are big -> IndexedDB
 export const loadSongs = (): Record<string, Song> => JSON.parse(localStorage.getItem(SONGS) ?? '{}')
 export const saveSong = (song: Song) => localStorage.setItem(SONGS, JSON.stringify({ ...loadSongs(), [song.key]: song }))
+export const mergeSongs = (songs: Record<string, Song>) => localStorage.setItem(SONGS, JSON.stringify({ ...loadSongs(), ...songs }))
 export const loadKnown = (): string[] => JSON.parse(localStorage.getItem(KNOWN) ?? '[]')
 export const saveKnown = (known: string[]) => localStorage.setItem(KNOWN, JSON.stringify(known))
 

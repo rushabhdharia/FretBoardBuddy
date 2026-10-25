@@ -11,6 +11,7 @@ export type Song = {
   stretch?: number // older saved songs have none -> 1
   capo?: number // none -> 0
   loop?: { a: number; b: number } | null // tab seconds
+  overrides?: Record<string, string> // manual per-chord edits keyed by eventId
   speed: number
   standard: boolean
   subst: Record<string, string>

@@ -12,9 +12,11 @@ type Props = {
   onKnown: (known: string[]) => void
   onSubst: (subst: Record<string, string>) => void
   onAuto: () => void
+  editCount: number
+  onClearEdits: () => void
 }
 
-export function ChordPanel({ events, capoOptions, capo, onCapo, known, subst, onKnown, onSubst, onAuto }: Props) {
+export function ChordPanel({ events, capoOptions, capo, onCapo, known, subst, onKnown, onSubst, onAuto, editCount, onClearEdits }: Props) {
   const counts = new Map<string, number>()
   for (const e of events) counts.set(e.chord, (counts.get(e.chord) ?? 0) + 1)
 
@@ -50,6 +52,7 @@ export function ChordPanel({ events, capoOptions, capo, onCapo, known, subst, on
       <h2>
         Chords in this song <button onClick={onAuto} disabled={!known.length || !events.length}>Auto-replace unknown</button>
         <button onClick={() => onSubst({})} disabled={!Object.keys(subst).length}>Reset</button>
+        <button onClick={onClearEdits} disabled={!editCount}>Clear my edits ({editCount})</button>
       </h2>
       <div className="rows">
         {[...counts].map(([c, n]) => {

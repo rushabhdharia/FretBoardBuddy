@@ -5,7 +5,7 @@ type Score = model.Score
 type Track = model.Track
 import { detectChord } from './detect'
 
-export type ChordEvent = { tabMs: number; chord: string; source: 'label' | 'detected'; orig?: string }
+export type ChordEvent = { tabMs: number; chord: string; source: 'label' | 'detected'; orig?: string; ids?: number[] }
 
 const TICKS_PER_QUARTER = 960
 const WINDOW_TICKS = TICKS_PER_QUARTER * 2 // ponytail: fixed half-note windows, switch to per-beat if chords change faster

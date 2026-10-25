@@ -25,13 +25,21 @@ export function suggest(chord: string, known: string[]): string[] {
     .map(x => x.k)
 }
 
-/** Replaces chords via map and merges neighbours that become identical. Keeps the original name in `orig`. */
-export function applySubst(events: ChordEvent[], map: Record<string, string>): ChordEvent[] {
+/** Stable id of a raw chord event: its start in whole ms. Manual edits are keyed by it. */
+export const eventId = (e: ChordEvent) => Math.round(e.tabMs)
+
+/**
+ * Replaces chords and merges neighbours that become identical. Per-event `overrides` (keyed by eventId)
+ * beat the per-chord `map`. `orig` keeps the original name; `ids` lists every raw event a card covers.
+ */
+export function applySubst(events: ChordEvent[], map: Record<string, string>, overrides: Record<string, string> = {}): ChordEvent[] {
   const out: ChordEvent[] = []
   for (const e of events) {
-    const chord = map[e.chord] ?? e.chord
-    if (out.at(-1)?.chord === chord) continue
-    out.push({ ...e, chord, orig: chord === e.chord ? undefined : e.chord })
+    const id = eventId(e)
+    const chord = overrides[id] ?? map[e.chord] ?? e.chord
+    const last = out.at(-1)
+    if (last?.chord === chord) { last.ids!.push(id); continue }
+    out.push({ ...e, chord, orig: chord === e.chord ? undefined : e.chord, ids: [id] })
   }
   return out
 }

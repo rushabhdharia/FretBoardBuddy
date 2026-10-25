@@ -10,6 +10,22 @@ describe('suggest', () => {
   it('C -> Am relative minor when known', () => expect(suggest('C', ['Am', 'D', 'E'])[0]).toBe('Am'))
 })
 
+describe('overrides', () => {
+  const events = ev('G', 'D', 'G', 'D')
+  it('beats the per-chord map', () => {
+    const out = applySubst(events, { D: 'A' }, { 1000: 'C' })
+    expect(out.map(e => e.chord)).toEqual(['G', 'C', 'G', 'A'])
+  })
+  it('a merged card lists every raw event it covers', () => {
+    const out = applySubst(ev('G', 'D', 'D', 'C'), { D: 'G' })
+    expect(out.map(e => e.chord)).toEqual(['G', 'C'])
+    expect(out[0].ids).toEqual([0, 1000, 2000])
+  })
+  it('without overrides nothing changes', () => {
+    expect(applySubst(events, {}, {}).map(e => e.chord)).toEqual(['G', 'D', 'G', 'D'])
+  })
+})
+
 describe('applySubst', () => {
   it('replaces, remembers original, merges neighbours', () => {
     const out = applySubst(ev('D', 'Bm', 'A', 'F#m', 'A'), { Bm: 'D', 'F#m': 'A' })

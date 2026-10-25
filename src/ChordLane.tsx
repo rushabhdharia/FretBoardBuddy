@@ -5,6 +5,7 @@ import { createClock } from './clock'
 import { mediaToTab, tabToMedia } from './sync'
 import { ChordDiagram } from './ChordDiagram'
 import type { Loop } from './loop'
+import { ALL_CHORDS } from './subst'
 
 const PX_PER_SEC = 90
 const PLAYHEAD = 0.25 // fraction of lane width
@@ -12,6 +13,7 @@ const PLAYHEAD = 0.25 // fraction of lane width
 type Props = {
   events: ChordEvent[]; source: Source | null; offsetSec: number; stretch: number; speed: number; capo: number
   loop: Loop | null; pendingA: number | null
+  editing: boolean; onEdit: (ids: number[], chord: string | null) => void
   voicing: Record<string, number>; onVoicing: (chord: string, index: number) => void
 }
 
@@ -25,10 +27,11 @@ function indexAt(events: ChordEvent[], ms: number) {
   return ans
 }
 
-export function ChordLane({ events, source, offsetSec, stretch, speed, capo, loop, pendingA, voicing, onVoicing }: Props) {
+export function ChordLane({ events, source, offsetSec, stretch, speed, capo, loop, pendingA, editing, onEdit, voicing, onVoicing }: Props) {
   const laneRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const [cur, setCur] = useState(-1)
+  const [editIdx, setEditIdx] = useState<number | null>(null)
   // latest props for the rAF loop and click handler, without restarting the loop
   const live = useRef({ events, source, offsetSec, stretch, speed })
   useEffect(() => { live.current = { events, source, offsetSec, stretch, speed } })
@@ -82,9 +85,17 @@ export function ChordLane({ events, source, offsetSec, stretch, speed, capo, loo
           {events.map((e, i) => {
             const end = events[i + 1]?.tabMs ?? e.tabMs + 2000
             return (
-              <div key={i} className={`card${i === cur ? ' active' : ''}`}
-                style={{ left: (e.tabMs / 1000) * PX_PER_SEC, width: ((end - e.tabMs) / 1000) * PX_PER_SEC - 4 }}>
-                {e.chord}{e.orig && <small> ({e.orig})</small>}
+              <div key={i} className={`card${i === cur ? ' active' : ''}${editing ? ' editable' : ''}`}
+                style={{ left: (e.tabMs / 1000) * PX_PER_SEC, width: ((end - e.tabMs) / 1000) * PX_PER_SEC - 4 }}
+                onClick={editing ? ev => { ev.stopPropagation(); setEditIdx(i) } : undefined}>
+                {editing && editIdx === i
+                  ? <select autoFocus value={e.chord} onClick={ev => ev.stopPropagation()} onBlur={() => setEditIdx(null)}
+                      onChange={ev => { onEdit(e.ids ?? [], ev.target.value === '' ? null : ev.target.value); setEditIdx(null) }}>
+                      <option value={e.chord}>{e.chord}</option>
+                      {e.orig && <option value="">undo edit / replacement</option>}
+                      {ALL_CHORDS.filter(c => c !== e.chord).map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  : <>{e.chord}{e.orig && <small> ({e.orig})</small>}</>}
               </div>
             )
           })}

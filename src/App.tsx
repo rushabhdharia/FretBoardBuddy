@@ -32,6 +32,8 @@ export default function App() {
   const [capo, setCapo] = useState(0)
   const [loop, setLoop] = useState<Loop | null>(null)
   const [pendingA, setPendingA] = useState<number | null>(null)
+  const [overrides, setOverrides] = useState<Record<string, string>>({})
+  const [editing, setEditing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
   const [subst, setSubst] = useState<Record<string, string>>({})
   const [known, setKnown] = useState<string[]>(loadKnown)
@@ -42,7 +44,7 @@ export default function App() {
 
   const events = useMemo(() => (score ? buildTimeline(score, { standardTuning: standard }) : []), [score, standard])
   const shapeEvents = useMemo(() => capoShift(events, capo), [events, capo])
-  const shown = useMemo(() => applySubst(shapeEvents, subst), [shapeEvents, subst])
+  const shown = useMemo(() => applySubst(shapeEvents, subst, overrides), [shapeEvents, subst, overrides])
   const shift = score ? standardTuningShift(score) : 0
   const key = srcInfo && songKey(srcInfo)
 
@@ -54,9 +56,9 @@ export default function App() {
   // persist per-song settings and the tab file once both a source and a tab are loaded
   useEffect(() => {
     if (!srcInfo || !key || !gpFile) return
-    saveSong({ key, title: gpFile.name.replace(/\.gp\w*$/, ''), source: srcInfo, gpName: gpFile.name, offset, stretch, capo, loop, speed, standard, subst })
+    saveSong({ key, title: gpFile.name.replace(/\.gp\w*$/, ''), source: srcInfo, gpName: gpFile.name, offset, stretch, capo, loop, overrides, speed, standard, subst })
     setSaved(loadSongs())
-  }, [key, srcInfo, gpFile, offset, stretch, capo, loop, speed, standard, subst])
+  }, [key, srcInfo, gpFile, offset, stretch, capo, loop, overrides, speed, standard, subst])
   useEffect(() => { if (key && gpFile) void putBlob(`gp:${key}`, gpFile) }, [key, gpFile])
 
   // A-B loop: jump back to A once playback passes B
@@ -90,6 +92,14 @@ export default function App() {
     setPendingA(null)
     setSyncMsg('')
   }
+  // card edit: set every raw event the card covers, or restore them (null)
+  const editChord = (ids: number[], chord: string | null) =>
+    setOverrides(o => {
+      const next = { ...o }
+      for (const id of ids) if (chord) next[id] = chord; else delete next[id]
+      return next
+    })
+
   const clearLoop = () => { setLoop(null); setPendingA(null) }
 
   const loadScore = async (file: File) => {
@@ -112,6 +122,7 @@ export default function App() {
     setSyncMsg('')
     setSpeed(s?.speed ?? 1)
     setSubst(s?.subst ?? {})
+    setOverrides(s?.overrides ?? {})
     if (s) setStandard(s.standard)
     return s
   }
@@ -161,8 +172,9 @@ export default function App() {
   // substitutions are keyed by shape names, which a new capo changes: start them over
   const changeCapo = (next: number) => {
     if (next === capo) return
-    if (Object.keys(subst).length && !confirm('Changing the capo clears your chord replacements. Continue?')) return
+    if ((Object.keys(subst).length || Object.keys(overrides).length) && !confirm('Changing the capo clears your chord replacements and edits. Continue?')) return
     setSubst({})
+    setOverrides({})
     setCapo(next)
   }
 
@@ -213,7 +225,7 @@ export default function App() {
 
       <div className="video" ref={videoHost} />
 
-      <ChordLane events={shown} capo={capo} loop={loop} pendingA={pendingA} source={source} offsetSec={offset} stretch={stretch} speed={speed}
+      <ChordLane events={shown} capo={capo} loop={loop} pendingA={pendingA} editing={editing} onEdit={editChord} source={source} offsetSec={offset} stretch={stretch} speed={speed}
         voicing={voicing} onVoicing={(c, i) => setVoicing(v => ({ ...v, [c]: i }))} />
 
       <section className="row">
@@ -223,6 +235,7 @@ export default function App() {
         {(loop || pendingA !== null) && <button onClick={clearLoop}>Clear loop</button>}
         {loop && <span>loop {loop.a.toFixed(1)}s – {loop.b.toFixed(1)}s</span>}
         {!loop && pendingA !== null && <span>A at {pendingA.toFixed(1)}s, now set B</span>}
+        <label><input type="checkbox" checked={editing} onChange={e => setEditing(e.target.checked)} /> Edit chords (click a card)</label>
         <label>Speed {SPEEDS.map(s => (
           <button key={s} className={s === speed ? 'on' : ''} onClick={() => setSpeed(s)}>{s}x</button>
         ))}</label>
@@ -247,7 +260,8 @@ export default function App() {
       )}
 
       <ChordPanel events={shapeEvents} capoOptions={known.length ? bestCapos(events, known) : []} capo={capo} onCapo={changeCapo} known={known} subst={subst} onKnown={setKnown} onSubst={setSubst}
-        onAuto={() => setSubst(autoSubst(shapeEvents, known))} />
+        onAuto={() => setSubst(autoSubst(shapeEvents, known))}
+        editCount={Object.keys(overrides).length} onClearEdits={() => setOverrides({})} />
     </main>
   )
 }

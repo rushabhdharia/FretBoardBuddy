@@ -2,10 +2,11 @@
 
 Play guitar along with a song. Load a Guitar Pro tab and a YouTube link (or an mp3). FretBoardBuddy scrolls the chords in time with the music, so you always see what to play next.
 
-Everything runs in your browser. There is no server and no account.
+FretBoardBuddy runs on your own computer. A small local server keeps your songs in a SQLite file, there is no account, and nothing is uploaded anywhere.
 
 ## Features
 
+- **YouTube or your own audio:** play along with a YouTube video, or load an mp3 when a video blocks embedding. Both work the same way for chords, sync, speed, loops and shortcuts.
 - **Chord lane:** chords scroll past a fixed playhead, with the current and next chord shown as fretboard diagrams. Click a diagram to try another voicing. Click the lane to jump around the song.
 - **Tab view:** the tab for any track, with a moving playhead and click-to-seek.
 - **Slow it down:** play at 0.25x, 0.5x or 0.75x. Chords stay in sync because they follow the player's clock.
@@ -89,10 +90,11 @@ Click outside the video first. While the YouTube video has focus, YouTube gets t
 
 - Chord detection is rough on arpeggios and lead lines.
 - Drift correction handles steady tempo differences only, not a recording that speeds up and slows down.
+- The loop jumps back with the player's own seek, so a very short gap is possible, especially on YouTube.
 - Only major and minor chords are detected and offered.
 - With a capo, the chord lane shows the shapes you finger, but the tab view always shows the file's real frets. Changing the capo clears your chord replacements and edits.
 - The app needs its local server running; without it you get a message asking you to start it.
-- The tab view shows the file's real frets. If the file is tuned down, tune your guitar down to match the tab, or ignore the tab numbers and use the chord shapes.
+- If a file is tuned down, tune your guitar down to match the tab, or ignore the tab numbers and use the chord shapes.
 
 ## Guitar Pro files
 

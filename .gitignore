@@ -33,3 +33,6 @@ dist-ssr
 
 # SQLite data (songs, tabs, mp3s)
 data/
+*.db
+*.db-*
+*.sqlite*

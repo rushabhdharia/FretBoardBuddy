@@ -4,12 +4,14 @@ import type { Source } from './player/source'
 import { createClock } from './clock'
 import { mediaToTab, tabToMedia } from './sync'
 import { ChordDiagram } from './ChordDiagram'
+import type { Loop } from './loop'
 
 const PX_PER_SEC = 90
 const PLAYHEAD = 0.25 // fraction of lane width
 
 type Props = {
   events: ChordEvent[]; source: Source | null; offsetSec: number; stretch: number; speed: number; capo: number
+  loop: Loop | null; pendingA: number | null
   voicing: Record<string, number>; onVoicing: (chord: string, index: number) => void
 }
 
@@ -23,7 +25,7 @@ function indexAt(events: ChordEvent[], ms: number) {
   return ans
 }
 
-export function ChordLane({ events, source, offsetSec, stretch, speed, capo, voicing, onVoicing }: Props) {
+export function ChordLane({ events, source, offsetSec, stretch, speed, capo, loop, pendingA, voicing, onVoicing }: Props) {
   const laneRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const [cur, setCur] = useState(-1)
@@ -75,6 +77,8 @@ export function ChordLane({ events, source, offsetSec, stretch, speed, capo, voi
       <div className="lane" ref={laneRef} onClick={seekFromClick}>
         <div className="playhead" style={{ left: `${PLAYHEAD * 100}%` }} />
         <div className="track" ref={trackRef}>
+          {loop && <div className="loopband" style={{ left: loop.a * PX_PER_SEC, width: (loop.b - loop.a) * PX_PER_SEC }} />}
+          {!loop && pendingA !== null && <div className="loopband loopA" style={{ left: pendingA * PX_PER_SEC }} />}
           {events.map((e, i) => {
             const end = events[i + 1]?.tabMs ?? e.tabMs + 2000
             return (

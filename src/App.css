@@ -28,3 +28,5 @@ select { background: #2b3040; color: inherit; border: 1px solid #444b60; border-
 .tabwrap { position: relative; height: 260px; overflow: auto; background: #fff; border-radius: 8px; margin-top: 6px; }
 .tabhead { position: absolute; left: 0; width: 2px; background: rgba(255, 140, 0, .9); display: none; pointer-events: none; }
 .capo { background: #ffcc3d; color: #15171c; border-radius: 6px; padding: 2px 8px; font-weight: 600; align-self: center; }
+.loopband { position: absolute; top: -12px; height: 80px; background: rgba(255, 204, 61, .15); border-left: 2px solid #ffcc3d; border-right: 2px solid #ffcc3d; pointer-events: none; }
+.loopband.loopA { width: 0; border-right: 0; }

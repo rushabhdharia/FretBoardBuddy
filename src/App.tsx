@@ -7,8 +7,10 @@ import { createAudioSource } from './player/AudioSource'
 import type { Source } from './player/source'
 import { createYouTubeSource, parseVideoId } from './player/YouTubeSource'
 import { bestCapos, capoShift } from './capo'
+import { createClock } from './clock'
+import { makeLoop, shouldWrap, snapA, snapB, type Loop } from './loop'
 import { applySubst, autoSubst } from './subst'
-import { anchorFirst, anchorSecond, mediaToTab, nearestEvent } from './sync'
+import { anchorFirst, anchorSecond, mediaToTab, nearestEvent, tabToMedia } from './sync'
 import { getBlob, loadKnown, loadSongs, loadVoicing, putBlob, saveKnown, saveSong, saveVoicing, songKey, type SongSource } from './store'
 import { buildTimeline, standardTuningShift } from './timeline'
 import './App.css'
@@ -28,6 +30,8 @@ export default function App() {
   const [offset, setOffset] = useState(0)
   const [stretch, setStretch] = useState(1)
   const [capo, setCapo] = useState(0)
+  const [loop, setLoop] = useState<Loop | null>(null)
+  const [pendingA, setPendingA] = useState<number | null>(null)
   const [syncMsg, setSyncMsg] = useState('')
   const [subst, setSubst] = useState<Record<string, string>>({})
   const [known, setKnown] = useState<string[]>(loadKnown)
@@ -50,10 +54,43 @@ export default function App() {
   // persist per-song settings and the tab file once both a source and a tab are loaded
   useEffect(() => {
     if (!srcInfo || !key || !gpFile) return
-    saveSong({ key, title: gpFile.name.replace(/\.gp\w*$/, ''), source: srcInfo, gpName: gpFile.name, offset, stretch, capo, speed, standard, subst })
+    saveSong({ key, title: gpFile.name.replace(/\.gp\w*$/, ''), source: srcInfo, gpName: gpFile.name, offset, stretch, capo, loop, speed, standard, subst })
     setSaved(loadSongs())
-  }, [key, srcInfo, gpFile, offset, stretch, capo, speed, standard, subst])
+  }, [key, srcInfo, gpFile, offset, stretch, capo, loop, speed, standard, subst])
   useEffect(() => { if (key && gpFile) void putBlob(`gp:${key}`, gpFile) }, [key, gpFile])
+
+  // A-B loop: jump back to A once playback passes B
+  useEffect(() => {
+    if (!source || !loop) return
+    let raf = 0, quietUntil = 0
+    const clock = createClock()
+    const tick = () => {
+      const sync = { offset, stretch }
+      const now = performance.now()
+      // after a seek the player can report the old time for a moment: do not wrap twice
+      if (now > quietUntil && source.playing() && shouldWrap(loop, mediaToTab(sync, clock(source, speed)))) {
+        source.seek(tabToMedia(sync, loop.a))
+        quietUntil = now + 400
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [source, loop, offset, stretch, speed])
+
+  const tabNow = () => (source ? mediaToTab({ offset, stretch }, source.currentTime()) : 0)
+  const setLoopA = () => { if (source && shown.length) { setPendingA(snapA(shown, tabNow()) ?? null); setLoop(null); setSyncMsg('') } }
+  const setLoopB = () => {
+    if (!source || !shown.length) return
+    const a = pendingA ?? loop?.a
+    const b = snapB(shown, tabNow())
+    const next = a !== undefined && b !== undefined ? makeLoop(a, b) : null
+    if (!next) return setSyncMsg('Set A first, then press B later in the song, on or just before a chord change.')
+    setLoop(next)
+    setPendingA(null)
+    setSyncMsg('')
+  }
+  const clearLoop = () => { setLoop(null); setPendingA(null) }
 
   const loadScore = async (file: File) => {
     try {
@@ -70,6 +107,8 @@ export default function App() {
     setOffset(s?.offset ?? 0)
     setStretch(s?.stretch ?? 1)
     setCapo(s?.capo ?? 0)
+    setLoop(s?.loop ?? null)
+    setPendingA(null)
     setSyncMsg('')
     setSpeed(s?.speed ?? 1)
     setSubst(s?.subst ?? {})
@@ -174,11 +213,16 @@ export default function App() {
 
       <div className="video" ref={videoHost} />
 
-      <ChordLane events={shown} capo={capo} source={source} offsetSec={offset} stretch={stretch} speed={speed}
+      <ChordLane events={shown} capo={capo} loop={loop} pendingA={pendingA} source={source} offsetSec={offset} stretch={stretch} speed={speed}
         voicing={voicing} onVoicing={(c, i) => setVoicing(v => ({ ...v, [c]: i }))} />
 
       <section className="row">
         <button disabled={!source} onClick={() => (source!.playing() ? source!.pause() : source!.play())}>Play / Pause</button>
+        <button disabled={!source || !shown.length} onClick={setLoopA}>Set A</button>
+        <button disabled={!source || !shown.length} onClick={setLoopB}>Set B</button>
+        {(loop || pendingA !== null) && <button onClick={clearLoop}>Clear loop</button>}
+        {loop && <span>loop {loop.a.toFixed(1)}s – {loop.b.toFixed(1)}s</span>}
+        {!loop && pendingA !== null && <span>A at {pendingA.toFixed(1)}s, now set B</span>}
         <label>Speed {SPEEDS.map(s => (
           <button key={s} className={s === speed ? 'on' : ''} onClick={() => setSpeed(s)}>{s}x</button>
         ))}</label>

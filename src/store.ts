@@ -10,6 +10,7 @@ export type Song = {
   offset: number
   stretch?: number // older saved songs have none -> 1
   capo?: number // none -> 0
+  loop?: { a: number; b: number } | null // tab seconds
   speed: number
   standard: boolean
   subst: Record<string, string>

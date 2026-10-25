@@ -12,7 +12,13 @@ Everything runs in your browser. There is no server and no account.
 - **Chord substitution:** tick the chords you know and press "Auto-replace unknown". Chords you can't play are swapped for the closest-sounding known chord, for example Bm becomes D and F#m becomes A. You can also pick any replacement per chord.
 - **Sync tools:** tap-to-sync for the start of the song, nudge buttons for fine tuning, and a second tap to correct tempo drift.
 - **Standard-tuning shapes:** if the tab is tuned down (for example a half step), chords can be shown as shapes for standard tuning.
-- **Saved songs:** links, offsets, replacements and your known chords are remembered in the browser.
+- **Capo finder:** tell the app which chords you know and it suggests the capo fret that leaves the fewest chords you can't play.
+- **A-B loop:** repeat a section, snapped to chord changes. Combine it with a slower speed to drill a hard change.
+- **Fix one chord:** turn on "Edit chords" and click a card to change just that chord, instead of every occurrence.
+- **Change warning:** a bar under the big chord counts down to the next chord, in real seconds at the current speed.
+- **Keyboard shortcuts:** keep your hands on the guitar (see below).
+- **Saved songs:** links, offsets, replacements, loops and your known chords are remembered in the browser.
+- **Backup and restore:** export everything to one JSON file and import it back.
 
 ## Run it
 
@@ -35,6 +41,20 @@ Other commands: `npm test`, `npm run build`, `npm run lint`.
 4. If the chords drift later in the song, press **This chord just started (fix drift)** exactly when a chord change sounds, at least 10 seconds in. The later you press it, the more accurate the fix.
 5. Tick the chords you know in "Chords I know", then press **Auto-replace unknown**.
 
+## Keyboard shortcuts
+
+| Key | Action |
+| --- | --- |
+| Space | Play / pause |
+| Left / Right | Seek 5 seconds back / forward |
+| `,` / `.` | Nudge the sync offset 10 ms earlier / later |
+| `-` / `=` | Slower / faster speed step |
+| `[` / `]` | Set loop start (A) / end (B) |
+| `\` | Clear the loop |
+| `e` | Toggle "Edit chords" |
+
+Click outside the video first. While the YouTube video has focus, YouTube gets the keys.
+
 ## How it works
 
 - [alphaTab](https://www.alphatab.net/) reads the Guitar Pro file and draws the tab. Its audio player is not used.
@@ -54,6 +74,9 @@ Other commands: `npm test`, `npm run build`, `npm run lint`.
 | `src/sync.ts` | Offset and drift math |
 | `src/player/` | YouTube and audio sources |
 | `src/ChordLane.tsx`, `src/TabView.tsx`, `src/ChordDiagram.tsx`, `src/ChordPanel.tsx` | UI |
+| `src/capo.ts` | Capo shapes and the best capo for your known chords |
+| `src/loop.ts` | A-B loop snapping and wrap rule |
+| `src/backup.ts` | Export and import of saved data |
 | `src/store.ts` | Saved songs and settings |
 
 ## Limits
@@ -61,6 +84,8 @@ Other commands: `npm test`, `npm run build`, `npm run lint`.
 - Chord detection is rough on arpeggios and lead lines.
 - Drift correction handles steady tempo differences only, not a recording that speeds up and slows down.
 - Only major and minor chords are detected and offered.
+- With a capo, the chord lane shows the shapes you finger, but the tab view always shows the file's real frets. Changing the capo clears your chord replacements and edits.
+- Backups include tab files but not mp3s: pick the mp3 again after restoring.
 - The tab view shows the file's real frets. If the file is tuned down, tune your guitar down to match the tab, or ignore the tab numbers and use the chord shapes.
 
 ## Guitar Pro files

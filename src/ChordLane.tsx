@@ -9,7 +9,7 @@ const PX_PER_SEC = 90
 const PLAYHEAD = 0.25 // fraction of lane width
 
 type Props = {
-  events: ChordEvent[]; source: Source | null; offsetSec: number; stretch: number; speed: number
+  events: ChordEvent[]; source: Source | null; offsetSec: number; stretch: number; speed: number; capo: number
   voicing: Record<string, number>; onVoicing: (chord: string, index: number) => void
 }
 
@@ -23,7 +23,7 @@ function indexAt(events: ChordEvent[], ms: number) {
   return ans
 }
 
-export function ChordLane({ events, source, offsetSec, stretch, speed, voicing, onVoicing }: Props) {
+export function ChordLane({ events, source, offsetSec, stretch, speed, capo, voicing, onVoicing }: Props) {
   const laneRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const [cur, setCur] = useState(-1)
@@ -65,6 +65,7 @@ export function ChordLane({ events, source, offsetSec, stretch, speed, voicing, 
     <div>
       <div className="now">
         <span className="big">{events[cur]?.chord ?? '–'}</span>
+        {capo > 0 && <span className="capo">Capo {capo}</span>}
         {events[cur] && <ChordDiagram chord={events[cur].chord} index={voicing[events[cur].chord] ?? 0}
           onIndex={i => onVoicing(events[cur].chord, i)} />}
         <span className="next">next: {events[cur + 1]?.chord ?? '–'}</span>

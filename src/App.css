@@ -27,3 +27,4 @@ select { background: #2b3040; color: inherit; border: 1px solid #444b60; border-
 .diagram { cursor: pointer; align-self: center; }
 .tabwrap { position: relative; height: 260px; overflow: auto; background: #fff; border-radius: 8px; margin-top: 6px; }
 .tabhead { position: absolute; left: 0; width: 2px; background: rgba(255, 140, 0, .9); display: none; pointer-events: none; }
+.capo { background: #ffcc3d; color: #15171c; border-radius: 6px; padding: 2px 8px; font-weight: 600; align-self: center; }

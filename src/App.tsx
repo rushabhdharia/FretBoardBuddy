@@ -6,6 +6,7 @@ import { TabView } from './TabView'
 import { createAudioSource } from './player/AudioSource'
 import type { Source } from './player/source'
 import { createYouTubeSource, parseVideoId } from './player/YouTubeSource'
+import { bestCapos, capoShift } from './capo'
 import { applySubst, autoSubst } from './subst'
 import { anchorFirst, anchorSecond, mediaToTab, nearestEvent } from './sync'
 import { getBlob, loadKnown, loadSongs, loadVoicing, putBlob, saveKnown, saveSong, saveVoicing, songKey, type SongSource } from './store'
@@ -26,6 +27,7 @@ export default function App() {
   const [speed, setSpeed] = useState(1)
   const [offset, setOffset] = useState(0)
   const [stretch, setStretch] = useState(1)
+  const [capo, setCapo] = useState(0)
   const [syncMsg, setSyncMsg] = useState('')
   const [subst, setSubst] = useState<Record<string, string>>({})
   const [known, setKnown] = useState<string[]>(loadKnown)
@@ -35,7 +37,8 @@ export default function App() {
   const videoHost = useRef<HTMLDivElement>(null)
 
   const events = useMemo(() => (score ? buildTimeline(score, { standardTuning: standard }) : []), [score, standard])
-  const shown = useMemo(() => applySubst(events, subst), [events, subst])
+  const shapeEvents = useMemo(() => capoShift(events, capo), [events, capo])
+  const shown = useMemo(() => applySubst(shapeEvents, subst), [shapeEvents, subst])
   const shift = score ? standardTuningShift(score) : 0
   const key = srcInfo && songKey(srcInfo)
 
@@ -47,9 +50,9 @@ export default function App() {
   // persist per-song settings and the tab file once both a source and a tab are loaded
   useEffect(() => {
     if (!srcInfo || !key || !gpFile) return
-    saveSong({ key, title: gpFile.name.replace(/\.gp\w*$/, ''), source: srcInfo, gpName: gpFile.name, offset, stretch, speed, standard, subst })
+    saveSong({ key, title: gpFile.name.replace(/\.gp\w*$/, ''), source: srcInfo, gpName: gpFile.name, offset, stretch, capo, speed, standard, subst })
     setSaved(loadSongs())
-  }, [key, srcInfo, gpFile, offset, stretch, speed, standard, subst])
+  }, [key, srcInfo, gpFile, offset, stretch, capo, speed, standard, subst])
   useEffect(() => { if (key && gpFile) void putBlob(`gp:${key}`, gpFile) }, [key, gpFile])
 
   const loadScore = async (file: File) => {
@@ -66,6 +69,7 @@ export default function App() {
     setSrcInfo(info)
     setOffset(s?.offset ?? 0)
     setStretch(s?.stretch ?? 1)
+    setCapo(s?.capo ?? 0)
     setSyncMsg('')
     setSpeed(s?.speed ?? 1)
     setSubst(s?.subst ?? {})
@@ -115,6 +119,14 @@ export default function App() {
     }
   }
 
+  // substitutions are keyed by shape names, which a new capo changes: start them over
+  const changeCapo = (next: number) => {
+    if (next === capo) return
+    if (Object.keys(subst).length && !confirm('Changing the capo clears your chord replacements. Continue?')) return
+    setSubst({})
+    setCapo(next)
+  }
+
   // "Chords start here": first chord's onset lines up with the current media time.
   const tapSync = () => {
     if (!source || !events.length) return
@@ -162,7 +174,7 @@ export default function App() {
 
       <div className="video" ref={videoHost} />
 
-      <ChordLane events={shown} source={source} offsetSec={offset} stretch={stretch} speed={speed}
+      <ChordLane events={shown} capo={capo} source={source} offsetSec={offset} stretch={stretch} speed={speed}
         voicing={voicing} onVoicing={(c, i) => setVoicing(v => ({ ...v, [c]: i }))} />
 
       <section className="row">
@@ -190,8 +202,8 @@ export default function App() {
         </>
       )}
 
-      <ChordPanel events={events} known={known} subst={subst} onKnown={setKnown} onSubst={setSubst}
-        onAuto={() => setSubst(autoSubst(events, known))} />
+      <ChordPanel events={shapeEvents} capoOptions={known.length ? bestCapos(events, known) : []} capo={capo} onCapo={changeCapo} known={known} subst={subst} onKnown={setKnown} onSubst={setSubst}
+        onAuto={() => setSubst(autoSubst(shapeEvents, known))} />
     </main>
   )
 }

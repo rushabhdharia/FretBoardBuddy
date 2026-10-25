@@ -9,6 +9,7 @@ export type Song = {
   gpName: string
   offset: number
   stretch?: number // older saved songs have none -> 1
+  capo?: number // none -> 0
   speed: number
   standard: boolean
   subst: Record<string, string>
